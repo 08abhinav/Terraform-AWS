@@ -100,3 +100,25 @@ resource "aws_s3_bucket_acl" "s3_acl" {
   bucket = aws_s3_bucket.mybucket.id
   acl    = "public-read"
 }
+
+resource "aws_instance" "webserver1" {
+  ami           = "ami-00e15f0027b9bf02b"
+  instance_type = "t2.micro"
+  vpc_evpc_security_group_ids = [aws_security_group.mysg.id]
+  subnet_id = aws_subnet.mysubnet1.id
+  user_data = base64encode{file("userdata.sh")}
+  tags = {
+    Name = "instance1"
+  }
+}
+
+resource "aws_instance" "webserver2" {
+  ami           = "ami-00e15f0027b9bf02b"
+  instance_type = "t2.micro"
+  vpc_evpc_security_group_ids = [aws_security_group.mysg.id]
+  subnet_id = aws_subnet.mysubnet2.id
+  user_data = base64encode{file("userdata2.sh")}
+  tags = {
+    Name = "instance1"
+  }
+}
