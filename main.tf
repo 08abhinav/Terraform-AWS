@@ -24,7 +24,7 @@ resource "aws_route_table" "RT" {
   vpc_id = aws_vpc.myvpc.id
   
   route {
-    cidr_block = "10.1.0.0/16"
+    cidr_block = "0.0.0.0/0"
     gateway_id = aws_internet_gateway.igw.id
   }
 }
@@ -55,7 +55,7 @@ resource "aws_security_group" "mysg" {
     description = "SSH"
     from_port = 22
     to_port = 22
-    protocol = "ssh"
+    protocol = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
 
@@ -102,23 +102,32 @@ resource "aws_s3_bucket_acl" "s3_acl" {
 }
 
 resource "aws_instance" "webserver1" {
-  ami           = "ami-00e15f0027b9bf02b"
-  instance_type = "t2.micro"
-  vpc_evpc_security_group_ids = [aws_security_group.mysg.id]
+  ami           = var.ami_id
+  instance_type = var.instance_type
+  vpc_security_group_ids = [aws_security_group.mysg.id]
   subnet_id = aws_subnet.mysubnet1.id
-  user_data = base64encode{file("userdata.sh")}
+  user_data_base64 = base64encode(file("userdata.sh"))
   tags = {
     Name = "instance1"
   }
 }
 
 resource "aws_instance" "webserver2" {
-  ami           = "ami-00e15f0027b9bf02b"
-  instance_type = "t2.micro"
-  vpc_evpc_security_group_ids = [aws_security_group.mysg.id]
+  ami           = var.ami_id
+  instance_type = var.instance_type
+  vpc_security_group_ids = [aws_security_group.mysg.id]
   subnet_id = aws_subnet.mysubnet2.id
-  user_data = base64encode{file("userdata2.sh")}
+  user_data_base64 = base64encode(file("userdata2.sh"))
   tags = {
-    Name = "instance1"
+    Name = "instance2"
   }
 }
+
+output "instance1_public_ip" {
+  value = aws_instance.webserver1.public_ip
+}
+
+output "instance2_public_ip" {
+  value = aws_instance.webserver2.public_ip
+}
+
