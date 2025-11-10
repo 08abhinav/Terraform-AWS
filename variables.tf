@@ -22,3 +22,13 @@ variable "az2"{
   description = "avaialbility zone for subnet2"
   default = "us-east-1b"
 }
+
+variable "ami_id"{
+  description = "amazon machine image"
+  default = "ami-0bdd88bd06d16ba03"
+}
+
+variable "instance_type"{
+  description = "specifying the ram, cpu"
+  default = "t2.micro"
+}
