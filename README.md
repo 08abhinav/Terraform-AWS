@@ -1,6 +1,6 @@
-## 📘 **Terraform AWS Infrastructure Project**
+## **Terraform AWS Infrastructure Project**
 
-### 🧾 **Overview**
+### **Overview**
 
 This project demonstrates a complete AWS infrastructure setup using **Terraform** — Infrastructure as Code (IaC).
 The setup provisions a **virtual private cloud (VPC)** environment with subnets, internet connectivity, compute instances, storage, and load balancing — all automatically managed by Terraform.
@@ -9,7 +9,7 @@ The main goal is to automate the provisioning of a simple web application infras
 
 ---
 
-## 🏗️ **Architecture Components**
+## **Architecture Components**
 
 ### **1. Virtual Private Cloud (VPC)**
 
