@@ -79,11 +79,11 @@ resource "aws_s3_bucket" "mybucket" {
 
 **Instance 1** → Displays:
 
-> “Welcome to My First Terraform Project 🚀”
+> “Welcome to My First Terraform Project”
 
 **Instance 2** → Displays:
 
-> “Deployed with Terraform ⚙️ — Infrastructure as Code demo”
+> “Deployed with Terraform — Infrastructure as Code demo”
 
 Each instance is tagged appropriately and accessible via its **public IP address**.
 
@@ -108,7 +108,7 @@ resource "aws_lb" "myalb" {
 
 ---
 
-## 🔒 **Security Group**
+## **Security Group**
 
 A single **security group** (`web-sg`) is used to control inbound and outbound traffic:
 
@@ -124,7 +124,7 @@ This makes it easy to test and view your deployed web pages through the browser.
 
 ---
 
-## ⚙️ **How to Deploy**
+## **How to Deploy**
 
 ### **1. Initialize Terraform**
 
@@ -154,7 +154,7 @@ Type `yes` when prompted.
 
 ---
 
-## 🌐 **Accessing the Web Application**
+## **Accessing the Web Application**
 
 Once Terraform completes:
 
@@ -170,7 +170,7 @@ You’ll see your HTML page served by Apache automatically.
 
 ---
 
-## 🧹 **Cleanup (Destroy Resources)**
+## **Cleanup (Destroy Resources)**
 
 To avoid AWS charges, destroy all resources when done:
 
@@ -182,7 +182,7 @@ Type `yes` to confirm.
 
 ---
 
-## 🧰 **Tools & Technologies Used**
+## **Tools & Technologies Used**
 
 * **Terraform** → Infrastructure as Code tool
 * **AWS EC2** → Virtual servers for running the web apps
