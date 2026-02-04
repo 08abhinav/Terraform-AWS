@@ -163,7 +163,7 @@ Once Terraform completes:
 * Paste it into your browser:
 
   ```
-  http://<public-ip>
+  http://<instance-public-ip>
   ```
 
 You’ll see your HTML page served by Apache automatically.
