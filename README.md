@@ -190,5 +190,3 @@ Type `yes` to confirm.
 * **AWS S3** → Object storage
 * **AWS ALB** → Load balancing between EC2 instances
 * **Bash** → EC2 user-data initialization scripts
-
----
