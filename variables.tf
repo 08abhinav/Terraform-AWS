@@ -10,5 +10,5 @@ variable "keyPair"{
 
 variable "bucket_name"{
   description = "Bucket name"
-  default = ""
+  default = "<replace-with-your-unique-bucket-name>"
 }
