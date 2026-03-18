@@ -1,68 +1,91 @@
-## **Terraform AWS Infrastructure Project**
+# Terraform AWS Infrastructure Project
 
-### **Overview**
+This project demonstrates a complete AWS infrastructure setup using **Terraform** (Infrastructure as Code).
 
-This project demonstrates a complete AWS infrastructure setup using **Terraform** — Infrastructure as Code (IaC).
-The setup provisions a **virtual private cloud (VPC)** environment with subnets, internet connectivity, compute instances, storage, and load balancing — all automatically managed by Terraform.
+The infrastructure provisions a basic web application environment on AWS that includes networking, compute, storage, and load balancing components.
 
-The main goal is to automate the provisioning of a simple web application infrastructure on AWS.
+The main objective is to automate infrastructure provisioning instead of manually creating resources from the AWS console.
 
----
-
-## **Architecture Components**
-
-### **1. Virtual Private Cloud (VPC)**
-
-* A custom **VPC** is created to logically isolate our infrastructure within AWS.
-* It defines the private IP address range using a CIDR block (e.g., `10.0.0.0/16`).
-* All subnets, route tables, and security groups are created inside this VPC.
+In this project, Terraform modules are used to organize resources for better readability and maintainability.
 
 ---
 
-### **2. Subnets**
+# Architecture Components
 
-* Two **public subnets** are created:
+## 1. Network Module
 
-  * **Subnet 1** (`mysubnet1`) — in **Availability Zone 1**
-  * **Subnet 2** (`mysubnet2`) — in **Availability Zone 2**
-* Each subnet is configured with:
+A separate **network module** is created to manage all networking-related resources.  
+This improves project structure and makes the Terraform code easier to understand and reuse.
 
-  ```hcl
-  map_public_ip_on_launch = true
-  ```
+The network module contains:
 
-  This ensures every EC2 instance launched within gets a **public IP address** automatically.
-
----
-
-### **3. Internet Gateway & Route Table**
-
-* An **Internet Gateway (IGW)** is attached to the VPC to allow internet access.
-* A **Route Table** is created and associated with both subnets.
-* The route configuration allows all outbound traffic to the Internet via the IGW:
-
-  ```hcl
-  cidr_block = "0.0.0.0/0"
-  gateway_id = aws_internet_gateway.igw.id
-  ```
-* This setup makes both subnets **publicly accessible**.
+- VPC
+- Subnets
+- Internet Gateway
+- Route Table
+- Route Table Associations
 
 ---
 
-### **4. S3 Bucket**
+## 2. Virtual Private Cloud (VPC)
 
-* A **S3 bucket** is provisioned for object storage.
-* It can be used for:
+- A custom **VPC** is created to logically isolate infrastructure inside AWS.
+- It defines the private IP address range using a CIDR block:
 
-  * Storing Terraform state files (optional, if remote backend configured)
-  * Storing web assets, logs, or any static content.
+```hcl
+10.0.0.0/16
+```
+
+---
+
+## 3. Subnets
+
+Two **public subnets** are created in different availability zones:
+
+- **Subnet 1 (`mysubnet1`)** → Availability Zone 1  
+- **Subnet 2 (`mysubnet2`)** → Availability Zone 2  
+
+Each subnet uses:
+
+```hcl
+map_public_ip_on_launch = true
+```
+
+This ensures that every EC2 instance launched inside the subnet automatically receives a public IP address.
+
+---
+
+## 4. Internet Gateway and Route Table
+
+- An **Internet Gateway (IGW)** is attached to the VPC to provide internet connectivity.
+- A **Route Table** is created and associated with both public subnets.
+
+The route configuration allows internet access:
+
+```hcl
+cidr_block = "0.0.0.0/0"
+gateway_id = aws_internet_gateway.igw.id
+```
+
+This makes both subnets publicly accessible.
+
+---
+
+## 5. S3 Bucket
+
+A **S3 bucket** is provisioned for object storage.
+
+It is used for:
+
+- Storing Terraform remote state files
+- Keeping infrastructure state centrally managed
+- Preventing local state dependency
 
 Example:
 
 ```hcl
 resource "aws_s3_bucket" "mybucket" {
   bucket = "terraform-aws-demo-bucket"
-  acl    = "private"
 
   tags = {
     Name = "TerraformBucket"
@@ -70,123 +93,137 @@ resource "aws_s3_bucket" "mybucket" {
 }
 ```
 
----
-
-### **5. EC2 Instances**
-
-* Two **EC2 instances** (`webserver1` and `webserver2`) are launched, each in a different subnet.
-* Both use **user data scripts** to automatically install Apache and host a custom HTML web page.
-
-**Instance 1** → Displays:
-
-> “Welcome to My First Terraform Project”
-
-**Instance 2** → Displays:
-
-> “Deployed with Terraform — Infrastructure as Code demo”
-
-Each instance is tagged appropriately and accessible via its **public IP address**.
+Terraform backend is configured so the state file is stored remotely inside the S3 bucket.
 
 ---
 
-### **6. Load Balancer**
+## 6. EC2 Instances
 
-* An **Application Load Balancer (ALB)** is created to distribute incoming HTTP traffic across both instances.
-* It improves availability and fault tolerance.
-* The ALB listens on port 80 and routes traffic to the target group containing both EC2 instances.
+Two **EC2 instances** are launched:
 
-Example structure:
+- **webserver1**
+- **webserver2**
+
+Each instance is deployed in a different subnet.
+
+Both instances use **user data scripts** to automatically:
+
+- Install Apache
+- Start the web server
+- Serve a custom HTML page
+
+---
+
+## 7. Security Group
+
+A single security group (`web-sg`) controls traffic for both EC2 instances and the load balancer.
+
+### Inbound Rules
+
+- Port 80 (HTTP) → open to everyone
 
 ```hcl
-resource "aws_lb" "myalb" {
-  name               = "terraform-alb"
-  load_balancer_type = "application"
-  security_groups    = [aws_security_group.mysg.id]
-  subnets            = [aws_subnet.mysubnet1.id, aws_subnet.mysubnet2.id]
-}
+0.0.0.0/0
 ```
 
----
+- Port 22 (SSH) → open for remote access
 
-## **Security Group**
+### Outbound Rules
 
-A single **security group** (`web-sg`) is used to control inbound and outbound traffic:
+- All outbound traffic allowed
 
-* **Inbound**:
-
-  * Port 80 (HTTP) → accessible to everyone (`0.0.0.0/0`)
-  * Port 22 (SSH) → accessible to everyone (for management)
-* **Outbound**:
-
-  * All traffic allowed to the internet.
-
-This makes it easy to test and view your deployed web pages through the browser.
+This allows browser access and SSH management.
 
 ---
 
-## **How to Deploy**
+## 8. Load Balancer
 
-### **1. Initialize Terraform**
+An **Application Load Balancer (ALB)** is created to distribute traffic across both EC2 instances.
+
+It provides:
+
+- Better availability
+- Fault tolerance
+- Traffic distribution
+
+The ALB listens on port 80 and forwards traffic to both EC2 instances through a target group.
+
+---
+
+# How to Deploy
+
+## 1. Initialize Terraform
 
 ```bash
 terraform init
 ```
 
-### **2. Validate Configuration**
+## 2. Validate Configuration
 
 ```bash
 terraform validate
 ```
 
-### **3. Preview Infrastructure Changes**
+## 3. Preview Infrastructure Changes
 
 ```bash
 terraform plan
 ```
 
-### **4. Deploy Infrastructure**
+## 4. Deploy Infrastructure
 
 ```bash
 terraform apply
 ```
 
-Type `yes` when prompted.
+Type:
+
+```bash
+yes
+```
+
+when prompted.
 
 ---
 
-## **Accessing the Web Application**
+# Accessing the Web Application
 
-Once Terraform completes:
+After successful deployment:
 
-* Go to your **AWS EC2 Console**
-* Copy the **Public IPv4 address** of either instance (or use the Load Balancer DNS name)
-* Paste it into your browser:
+- Copy loadbalancer.dns output from your terminal
+- Paste in browser:
 
-  ```
-  http://<instance-public-ip>
-  ```
+```bash
+http://<load-balancer-dns>
+```
 
-You’ll see your HTML page served by Apache automatically.
+The Apache-hosted web page will load automatically.
 
 ---
 
-## **Cleanup (Destroy Resources)**
+# Cleanup (Destroy Resources)
 
-To avoid AWS charges, destroy all resources when done:
+To avoid AWS charges:
 
 ```bash
 terraform destroy
 ```
 
-Type `yes` to confirm.
+Type:
+
+```bash
+yes
+```
+
+to confirm.
 
 ---
 
-## **Tools & Technologies Used**
+# Tools & Technologies Used
 
-* **Terraform** → Infrastructure as Code tool
-* **AWS EC2** → Virtual servers for running the web apps
-* **AWS VPC** → Isolated networking environment
-* **AWS S3** → Object storage
-* **AWS ALB** → Load balancing between EC2 instances
-* **Bash** → EC2 user-data initialization scripts
+- Terraform
+- AWS EC2
+- AWS VPC
+- AWS S3
+- AWS ALB
+- Bash
