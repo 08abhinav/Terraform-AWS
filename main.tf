@@ -17,36 +17,23 @@ module "network" {
   source = "./network"
 }
 
-resource "aws_iam_role" "ec2_role" {
-  name = "ec2_s3_role"
-
-  assume_role_policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [{
-      Action = "sts:AssumeRole"
-      Effect = "Allow"
-      Principal = {
-        Service = "ec2.amazonaws.com"
-      }
-    }]
-  })
+module "alb"{
+  source="./alb"
 }
 
-resource "aws_iam_role_policy_attachment" "s3_attach" {
-  role       = aws_iam_role.ec2_role.name
-  policy_arn = "arn:aws:iam::aws:policy/AmazonS3FullAccess"
+module "s3"{
+  source="./s3bucket"
 }
 
-resource "aws_iam_instance_profile" "profile" {
-  name = "ec2_profile"
-  role = aws_iam_role.ec2_role.name
+module "iam"{
+  source="./iam"
 }
 
 resource "aws_instance" "webserver1" {
   ami           = data.aws_ami.ubuntu.id
   instance_type = var.instance_type
   key_name = var.keyPair
-  iam_instance_profile = aws_iam_instance_profile.profile.name
+  iam_instance_profile = module.iam.aws_profile
 
   vpc_security_group_ids = [
     module.network.security_group_id
@@ -64,7 +51,7 @@ resource "aws_instance" "webserver2" {
   ami           = data.aws_ami.ubuntu.id
   instance_type = var.instance_type
   key_name = var.keyPair
-  iam_instance_profile = aws_iam_instance_profile.profile.name
+  iam_instance_profile = module.iam.aws_profile
 
   vpc_security_group_ids = [ module.network.security_group_id ]
 
@@ -76,90 +63,31 @@ resource "aws_instance" "webserver2" {
   }
 }
 
-resource "aws_lb" "myalb" {
-  name               = "myalb"
-  internal           = false
-  load_balancer_type = "application"
-
-  security_groups = [ module.network.security_group_id ]
-  subnets         = [
-    module.network.subnet1_id, 
-    module.network.subnet2_id
-  ]
-
-  tags = {
-    Name = "web"
-  }
-}
-
-resource "aws_lb_target_group" "tg" {
-  name     = "myTG"
-  port     = 80
-  protocol = "HTTP"
-  vpc_id   = module.network.vpc_id
-
-  health_check {
-    path = "/"
-    port = "traffic-port"
-  }
-}
-
 resource "aws_lb_target_group_attachment" "attach1" {
-  target_group_arn = aws_lb_target_group.tg.arn
+  target_group_arn = module.alb.alb_target_group.arn
   target_id        = aws_instance.webserver1.id
   port             = 80
 }
 
 resource "aws_lb_target_group_attachment" "attach2" {
-  target_group_arn = aws_lb_target_group.tg.arn
+  target_group_arn = module.alb.alb_target_group.arn
   target_id        = aws_instance.webserver2.id
   port             = 80
 }
 
 resource "aws_lb_listener" "listener" {
-  load_balancer_arn = aws_lb.myalb.arn
+  load_balancer_arn = module.alb.lb.arn
   port              = 80
   protocol          = "HTTP"
 
   default_action {
-    target_group_arn = aws_lb_target_group.tg.arn
+    target_group_arn = module.alb.alb_target_group.arn
     type             = "forward"
   }
 }
 
-resource "aws_s3_bucket" "mybucket" {
-  bucket = var.bucket_name
-}
-
-resource "aws_s3_bucket_ownership_controls" "s3_ownership" {
-  bucket = aws_s3_bucket.mybucket.id
-  rule {
-    object_ownership = "BucketOwnerPreferred"
-  }
-}
-
-resource "aws_s3_bucket_public_access_block" "s3_access" {
-  bucket = aws_s3_bucket.mybucket.id
-
-  block_public_acls       = false
-  block_public_policy     = false
-  ignore_public_acls      = false
-  restrict_public_buckets = false
-}
-
-resource "aws_s3_bucket_acl" "s3_acl" {
-  depends_on = [
-    aws_s3_bucket_ownership_controls.s3_ownership,
-    aws_s3_bucket_public_access_block.s3_access,
-  ]
-
-  bucket = aws_s3_bucket.mybucket.id
-  acl    = "public-read"
-}
-
-
 output "loadbalancerdns" {
-  value = aws_lb.myalb.dns_name
+  value = module.alb.lb.dns_name
 }
 
 output "instance1_public_ip" {
